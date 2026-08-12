@@ -4,7 +4,9 @@ A standalone 3D dinosaur education demo for classroom-style visual learning. It 
 
 ## Live Demo
 
-This repository is designed to run as a static site on GitHub Pages.
+Open the project in your browser:
+
+[https://bolin68688.github.io/dino-3d-field-guide/](https://bolin68688.github.io/dino-3d-field-guide/)
 
 ## Features
 
