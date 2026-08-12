@@ -6,7 +6,7 @@ A standalone 3D dinosaur education demo for classroom-style visual learning. It 
 
 Open the project in your browser:
 
-[https://bolin68688.github.io/dino-3d-field-guide/](https://bolin68688.github.io/dino-3d-field-guide/)
+[https://dino-3d-field-guide.vercel.app](https://dino-3d-field-guide.vercel.app)
 
 ## Features
 
@@ -15,7 +15,7 @@ Open the project in your browser:
 - Skin / skeleton view switching.
 - Dinosaur media and profile panel.
 - Optimized MP4/WebP assets for smoother loading.
-- Procedural model fallback when real GLB files are not included.
+- Clear missing-asset state when real GLB files are not included.
 
 ## Run Locally
 
@@ -44,7 +44,7 @@ This open-source package intentionally uses compressed videos and WebP posters t
 - `assets/velociraptor/velociraptor.glb`
 - `assets/velociraptor/velociraptor-skeleton.glb`
 
-When those files are missing, the app falls back to procedural demo models instead of breaking.
+When those files are missing, the app keeps the stage visible and prompts for the real GLB assets instead of showing broken geometry.
 
 ## Project Structure
 
