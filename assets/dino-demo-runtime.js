@@ -1,4 +1,4 @@
-(() => {
+var DinoDemoRuntime = (() => {
   // node_modules/three/build/three.core.js
   var REVISION = "180";
   var CullFaceNone = 0;
@@ -12347,14 +12347,14 @@
         blending: NoBlending
       });
       material.uniforms.tEquirect.value = texture;
-      const mesh2 = new Mesh(geometry, material);
+      const mesh = new Mesh(geometry, material);
       const currentMinFilter = texture.minFilter;
       if (texture.minFilter === LinearMipmapLinearFilter) texture.minFilter = LinearFilter;
       const camera2 = new CubeCamera(1, 10, this);
-      camera2.update(renderer2, mesh2);
+      camera2.update(renderer2, mesh);
       texture.minFilter = currentMinFilter;
-      mesh2.geometry.dispose();
-      mesh2.material.dispose();
+      mesh.geometry.dispose();
+      mesh.material.dispose();
       return this;
     }
     /**
@@ -14747,571 +14747,6 @@
       return new _CircleGeometry(data.radius, data.segments, data.thetaStart, data.thetaLength);
     }
   };
-  var CylinderGeometry = class _CylinderGeometry extends BufferGeometry {
-    /**
-     * Constructs a new cylinder geometry.
-     *
-     * @param {number} [radiusTop=1] - Radius of the cylinder at the top.
-     * @param {number} [radiusBottom=1] - Radius of the cylinder at the bottom.
-     * @param {number} [height=1] - Height of the cylinder.
-     * @param {number} [radialSegments=32] - Number of segmented faces around the circumference of the cylinder.
-     * @param {number} [heightSegments=1] - Number of rows of faces along the height of the cylinder.
-     * @param {boolean} [openEnded=false] - Whether the base of the cylinder is open or capped.
-     * @param {number} [thetaStart=0] - Start angle for first segment, in radians.
-     * @param {number} [thetaLength=Math.PI*2] - The central angle, often called theta, of the circular sector, in radians.
-     * The default value results in a complete cylinder.
-     */
-    constructor(radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
-      super();
-      this.type = "CylinderGeometry";
-      this.parameters = {
-        radiusTop,
-        radiusBottom,
-        height,
-        radialSegments,
-        heightSegments,
-        openEnded,
-        thetaStart,
-        thetaLength
-      };
-      const scope = this;
-      radialSegments = Math.floor(radialSegments);
-      heightSegments = Math.floor(heightSegments);
-      const indices = [];
-      const vertices = [];
-      const normals = [];
-      const uvs = [];
-      let index = 0;
-      const indexArray = [];
-      const halfHeight = height / 2;
-      let groupStart = 0;
-      generateTorso();
-      if (openEnded === false) {
-        if (radiusTop > 0) generateCap(true);
-        if (radiusBottom > 0) generateCap(false);
-      }
-      this.setIndex(indices);
-      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
-      this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
-      this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
-      function generateTorso() {
-        const normal = new Vector3();
-        const vertex2 = new Vector3();
-        let groupCount = 0;
-        const slope = (radiusBottom - radiusTop) / height;
-        for (let y = 0; y <= heightSegments; y++) {
-          const indexRow = [];
-          const v = y / heightSegments;
-          const radius = v * (radiusBottom - radiusTop) + radiusTop;
-          for (let x = 0; x <= radialSegments; x++) {
-            const u = x / radialSegments;
-            const theta = u * thetaLength + thetaStart;
-            const sinTheta = Math.sin(theta);
-            const cosTheta = Math.cos(theta);
-            vertex2.x = radius * sinTheta;
-            vertex2.y = -v * height + halfHeight;
-            vertex2.z = radius * cosTheta;
-            vertices.push(vertex2.x, vertex2.y, vertex2.z);
-            normal.set(sinTheta, slope, cosTheta).normalize();
-            normals.push(normal.x, normal.y, normal.z);
-            uvs.push(u, 1 - v);
-            indexRow.push(index++);
-          }
-          indexArray.push(indexRow);
-        }
-        for (let x = 0; x < radialSegments; x++) {
-          for (let y = 0; y < heightSegments; y++) {
-            const a = indexArray[y][x];
-            const b = indexArray[y + 1][x];
-            const c = indexArray[y + 1][x + 1];
-            const d = indexArray[y][x + 1];
-            if (radiusTop > 0 || y !== 0) {
-              indices.push(a, b, d);
-              groupCount += 3;
-            }
-            if (radiusBottom > 0 || y !== heightSegments - 1) {
-              indices.push(b, c, d);
-              groupCount += 3;
-            }
-          }
-        }
-        scope.addGroup(groupStart, groupCount, 0);
-        groupStart += groupCount;
-      }
-      function generateCap(top) {
-        const centerIndexStart = index;
-        const uv = new Vector2();
-        const vertex2 = new Vector3();
-        let groupCount = 0;
-        const radius = top === true ? radiusTop : radiusBottom;
-        const sign = top === true ? 1 : -1;
-        for (let x = 1; x <= radialSegments; x++) {
-          vertices.push(0, halfHeight * sign, 0);
-          normals.push(0, sign, 0);
-          uvs.push(0.5, 0.5);
-          index++;
-        }
-        const centerIndexEnd = index;
-        for (let x = 0; x <= radialSegments; x++) {
-          const u = x / radialSegments;
-          const theta = u * thetaLength + thetaStart;
-          const cosTheta = Math.cos(theta);
-          const sinTheta = Math.sin(theta);
-          vertex2.x = radius * sinTheta;
-          vertex2.y = halfHeight * sign;
-          vertex2.z = radius * cosTheta;
-          vertices.push(vertex2.x, vertex2.y, vertex2.z);
-          normals.push(0, sign, 0);
-          uv.x = cosTheta * 0.5 + 0.5;
-          uv.y = sinTheta * 0.5 * sign + 0.5;
-          uvs.push(uv.x, uv.y);
-          index++;
-        }
-        for (let x = 0; x < radialSegments; x++) {
-          const c = centerIndexStart + x;
-          const i = centerIndexEnd + x;
-          if (top === true) {
-            indices.push(i, i + 1, c);
-          } else {
-            indices.push(i + 1, i, c);
-          }
-          groupCount += 3;
-        }
-        scope.addGroup(groupStart, groupCount, top === true ? 1 : 2);
-        groupStart += groupCount;
-      }
-    }
-    copy(source) {
-      super.copy(source);
-      this.parameters = Object.assign({}, source.parameters);
-      return this;
-    }
-    /**
-     * Factory method for creating an instance of this class from the given
-     * JSON object.
-     *
-     * @param {Object} data - A JSON object representing the serialized geometry.
-     * @return {CylinderGeometry} A new instance.
-     */
-    static fromJSON(data) {
-      return new _CylinderGeometry(data.radiusTop, data.radiusBottom, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
-    }
-  };
-  var ConeGeometry = class _ConeGeometry extends CylinderGeometry {
-    /**
-     * Constructs a new cone geometry.
-     *
-     * @param {number} [radius=1] - Radius of the cone base.
-     * @param {number} [height=1] - Height of the cone.
-     * @param {number} [radialSegments=32] - Number of segmented faces around the circumference of the cone.
-     * @param {number} [heightSegments=1] - Number of rows of faces along the height of the cone.
-     * @param {boolean} [openEnded=false] - Whether the base of the cone is open or capped.
-     * @param {number} [thetaStart=0] - Start angle for first segment, in radians.
-     * @param {number} [thetaLength=Math.PI*2] - The central angle, often called theta, of the circular sector, in radians.
-     * The default value results in a complete cone.
-     */
-    constructor(radius = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
-      super(0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
-      this.type = "ConeGeometry";
-      this.parameters = {
-        radius,
-        height,
-        radialSegments,
-        heightSegments,
-        openEnded,
-        thetaStart,
-        thetaLength
-      };
-    }
-    /**
-     * Factory method for creating an instance of this class from the given
-     * JSON object.
-     *
-     * @param {Object} data - A JSON object representing the serialized geometry.
-     * @return {ConeGeometry} A new instance.
-     */
-    static fromJSON(data) {
-      return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
-    }
-  };
-  var PolyhedronGeometry = class _PolyhedronGeometry extends BufferGeometry {
-    /**
-     * Constructs a new polyhedron geometry.
-     *
-     * @param {Array<number>} [vertices] - A flat array of vertices describing the base shape.
-     * @param {Array<number>} [indices] - A flat array of indices describing the base shape.
-     * @param {number} [radius=1] - The radius of the shape.
-     * @param {number} [detail=0] - How many levels to subdivide the geometry. The more detail, the smoother the shape.
-     */
-    constructor(vertices = [], indices = [], radius = 1, detail = 0) {
-      super();
-      this.type = "PolyhedronGeometry";
-      this.parameters = {
-        vertices,
-        indices,
-        radius,
-        detail
-      };
-      const vertexBuffer = [];
-      const uvBuffer = [];
-      subdivide(detail);
-      applyRadius(radius);
-      generateUVs();
-      this.setAttribute("position", new Float32BufferAttribute(vertexBuffer, 3));
-      this.setAttribute("normal", new Float32BufferAttribute(vertexBuffer.slice(), 3));
-      this.setAttribute("uv", new Float32BufferAttribute(uvBuffer, 2));
-      if (detail === 0) {
-        this.computeVertexNormals();
-      } else {
-        this.normalizeNormals();
-      }
-      function subdivide(detail2) {
-        const a = new Vector3();
-        const b = new Vector3();
-        const c = new Vector3();
-        for (let i = 0; i < indices.length; i += 3) {
-          getVertexByIndex(indices[i + 0], a);
-          getVertexByIndex(indices[i + 1], b);
-          getVertexByIndex(indices[i + 2], c);
-          subdivideFace(a, b, c, detail2);
-        }
-      }
-      function subdivideFace(a, b, c, detail2) {
-        const cols = detail2 + 1;
-        const v = [];
-        for (let i = 0; i <= cols; i++) {
-          v[i] = [];
-          const aj = a.clone().lerp(c, i / cols);
-          const bj = b.clone().lerp(c, i / cols);
-          const rows = cols - i;
-          for (let j = 0; j <= rows; j++) {
-            if (j === 0 && i === cols) {
-              v[i][j] = aj;
-            } else {
-              v[i][j] = aj.clone().lerp(bj, j / rows);
-            }
-          }
-        }
-        for (let i = 0; i < cols; i++) {
-          for (let j = 0; j < 2 * (cols - i) - 1; j++) {
-            const k = Math.floor(j / 2);
-            if (j % 2 === 0) {
-              pushVertex(v[i][k + 1]);
-              pushVertex(v[i + 1][k]);
-              pushVertex(v[i][k]);
-            } else {
-              pushVertex(v[i][k + 1]);
-              pushVertex(v[i + 1][k + 1]);
-              pushVertex(v[i + 1][k]);
-            }
-          }
-        }
-      }
-      function applyRadius(radius2) {
-        const vertex2 = new Vector3();
-        for (let i = 0; i < vertexBuffer.length; i += 3) {
-          vertex2.x = vertexBuffer[i + 0];
-          vertex2.y = vertexBuffer[i + 1];
-          vertex2.z = vertexBuffer[i + 2];
-          vertex2.normalize().multiplyScalar(radius2);
-          vertexBuffer[i + 0] = vertex2.x;
-          vertexBuffer[i + 1] = vertex2.y;
-          vertexBuffer[i + 2] = vertex2.z;
-        }
-      }
-      function generateUVs() {
-        const vertex2 = new Vector3();
-        for (let i = 0; i < vertexBuffer.length; i += 3) {
-          vertex2.x = vertexBuffer[i + 0];
-          vertex2.y = vertexBuffer[i + 1];
-          vertex2.z = vertexBuffer[i + 2];
-          const u = azimuth(vertex2) / 2 / Math.PI + 0.5;
-          const v = inclination(vertex2) / Math.PI + 0.5;
-          uvBuffer.push(u, 1 - v);
-        }
-        correctUVs();
-        correctSeam();
-      }
-      function correctSeam() {
-        for (let i = 0; i < uvBuffer.length; i += 6) {
-          const x0 = uvBuffer[i + 0];
-          const x1 = uvBuffer[i + 2];
-          const x2 = uvBuffer[i + 4];
-          const max = Math.max(x0, x1, x2);
-          const min = Math.min(x0, x1, x2);
-          if (max > 0.9 && min < 0.1) {
-            if (x0 < 0.2) uvBuffer[i + 0] += 1;
-            if (x1 < 0.2) uvBuffer[i + 2] += 1;
-            if (x2 < 0.2) uvBuffer[i + 4] += 1;
-          }
-        }
-      }
-      function pushVertex(vertex2) {
-        vertexBuffer.push(vertex2.x, vertex2.y, vertex2.z);
-      }
-      function getVertexByIndex(index, vertex2) {
-        const stride = index * 3;
-        vertex2.x = vertices[stride + 0];
-        vertex2.y = vertices[stride + 1];
-        vertex2.z = vertices[stride + 2];
-      }
-      function correctUVs() {
-        const a = new Vector3();
-        const b = new Vector3();
-        const c = new Vector3();
-        const centroid = new Vector3();
-        const uvA = new Vector2();
-        const uvB = new Vector2();
-        const uvC = new Vector2();
-        for (let i = 0, j = 0; i < vertexBuffer.length; i += 9, j += 6) {
-          a.set(vertexBuffer[i + 0], vertexBuffer[i + 1], vertexBuffer[i + 2]);
-          b.set(vertexBuffer[i + 3], vertexBuffer[i + 4], vertexBuffer[i + 5]);
-          c.set(vertexBuffer[i + 6], vertexBuffer[i + 7], vertexBuffer[i + 8]);
-          uvA.set(uvBuffer[j + 0], uvBuffer[j + 1]);
-          uvB.set(uvBuffer[j + 2], uvBuffer[j + 3]);
-          uvC.set(uvBuffer[j + 4], uvBuffer[j + 5]);
-          centroid.copy(a).add(b).add(c).divideScalar(3);
-          const azi = azimuth(centroid);
-          correctUV(uvA, j + 0, a, azi);
-          correctUV(uvB, j + 2, b, azi);
-          correctUV(uvC, j + 4, c, azi);
-        }
-      }
-      function correctUV(uv, stride, vector, azimuth2) {
-        if (azimuth2 < 0 && uv.x === 1) {
-          uvBuffer[stride] = uv.x - 1;
-        }
-        if (vector.x === 0 && vector.z === 0) {
-          uvBuffer[stride] = azimuth2 / 2 / Math.PI + 0.5;
-        }
-      }
-      function azimuth(vector) {
-        return Math.atan2(vector.z, -vector.x);
-      }
-      function inclination(vector) {
-        return Math.atan2(-vector.y, Math.sqrt(vector.x * vector.x + vector.z * vector.z));
-      }
-    }
-    copy(source) {
-      super.copy(source);
-      this.parameters = Object.assign({}, source.parameters);
-      return this;
-    }
-    /**
-     * Factory method for creating an instance of this class from the given
-     * JSON object.
-     *
-     * @param {Object} data - A JSON object representing the serialized geometry.
-     * @return {PolyhedronGeometry} A new instance.
-     */
-    static fromJSON(data) {
-      return new _PolyhedronGeometry(data.vertices, data.indices, data.radius, data.details);
-    }
-  };
-  var DodecahedronGeometry = class _DodecahedronGeometry extends PolyhedronGeometry {
-    /**
-     * Constructs a new dodecahedron geometry.
-     *
-     * @param {number} [radius=1] - Radius of the dodecahedron.
-     * @param {number} [detail=0] - Setting this to a value greater than `0` adds vertices making it no longer a dodecahedron.
-     */
-    constructor(radius = 1, detail = 0) {
-      const t = (1 + Math.sqrt(5)) / 2;
-      const r = 1 / t;
-      const vertices = [
-        // (±1, ±1, ±1)
-        -1,
-        -1,
-        -1,
-        -1,
-        -1,
-        1,
-        -1,
-        1,
-        -1,
-        -1,
-        1,
-        1,
-        1,
-        -1,
-        -1,
-        1,
-        -1,
-        1,
-        1,
-        1,
-        -1,
-        1,
-        1,
-        1,
-        // (0, ±1/φ, ±φ)
-        0,
-        -r,
-        -t,
-        0,
-        -r,
-        t,
-        0,
-        r,
-        -t,
-        0,
-        r,
-        t,
-        // (±1/φ, ±φ, 0)
-        -r,
-        -t,
-        0,
-        -r,
-        t,
-        0,
-        r,
-        -t,
-        0,
-        r,
-        t,
-        0,
-        // (±φ, 0, ±1/φ)
-        -t,
-        0,
-        -r,
-        t,
-        0,
-        -r,
-        -t,
-        0,
-        r,
-        t,
-        0,
-        r
-      ];
-      const indices = [
-        3,
-        11,
-        7,
-        3,
-        7,
-        15,
-        3,
-        15,
-        13,
-        7,
-        19,
-        17,
-        7,
-        17,
-        6,
-        7,
-        6,
-        15,
-        17,
-        4,
-        8,
-        17,
-        8,
-        10,
-        17,
-        10,
-        6,
-        8,
-        0,
-        16,
-        8,
-        16,
-        2,
-        8,
-        2,
-        10,
-        0,
-        12,
-        1,
-        0,
-        1,
-        18,
-        0,
-        18,
-        16,
-        6,
-        10,
-        2,
-        6,
-        2,
-        13,
-        6,
-        13,
-        15,
-        2,
-        16,
-        18,
-        2,
-        18,
-        3,
-        2,
-        3,
-        13,
-        18,
-        1,
-        9,
-        18,
-        9,
-        11,
-        18,
-        11,
-        3,
-        4,
-        14,
-        12,
-        4,
-        12,
-        0,
-        4,
-        0,
-        8,
-        11,
-        9,
-        5,
-        11,
-        5,
-        19,
-        11,
-        19,
-        7,
-        19,
-        5,
-        14,
-        19,
-        14,
-        4,
-        19,
-        4,
-        17,
-        1,
-        12,
-        14,
-        1,
-        14,
-        5,
-        1,
-        5,
-        9
-      ];
-      super(vertices, indices, radius, detail);
-      this.type = "DodecahedronGeometry";
-      this.parameters = {
-        radius,
-        detail
-      };
-    }
-    /**
-     * Factory method for creating an instance of this class from the given
-     * JSON object.
-     *
-     * @param {Object} data - A JSON object representing the serialized geometry.
-     * @return {DodecahedronGeometry} A new instance.
-     */
-    static fromJSON(data) {
-      return new _DodecahedronGeometry(data.radius, data.detail);
-    }
-  };
   var PlaneGeometry = class _PlaneGeometry extends BufferGeometry {
     /**
      * Constructs a new plane geometry.
@@ -15381,94 +14816,6 @@
      */
     static fromJSON(data) {
       return new _PlaneGeometry(data.width, data.height, data.widthSegments, data.heightSegments);
-    }
-  };
-  var SphereGeometry = class _SphereGeometry extends BufferGeometry {
-    /**
-     * Constructs a new sphere geometry.
-     *
-     * @param {number} [radius=1] - The sphere radius.
-     * @param {number} [widthSegments=32] - The number of horizontal segments. Minimum value is `3`.
-     * @param {number} [heightSegments=16] - The number of vertical segments. Minimum value is `2`.
-     * @param {number} [phiStart=0] - The horizontal starting angle in radians.
-     * @param {number} [phiLength=Math.PI*2] - The horizontal sweep angle size.
-     * @param {number} [thetaStart=0] - The vertical starting angle in radians.
-     * @param {number} [thetaLength=Math.PI] - The vertical sweep angle size.
-     */
-    constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
-      super();
-      this.type = "SphereGeometry";
-      this.parameters = {
-        radius,
-        widthSegments,
-        heightSegments,
-        phiStart,
-        phiLength,
-        thetaStart,
-        thetaLength
-      };
-      widthSegments = Math.max(3, Math.floor(widthSegments));
-      heightSegments = Math.max(2, Math.floor(heightSegments));
-      const thetaEnd = Math.min(thetaStart + thetaLength, Math.PI);
-      let index = 0;
-      const grid2 = [];
-      const vertex2 = new Vector3();
-      const normal = new Vector3();
-      const indices = [];
-      const vertices = [];
-      const normals = [];
-      const uvs = [];
-      for (let iy = 0; iy <= heightSegments; iy++) {
-        const verticesRow = [];
-        const v = iy / heightSegments;
-        let uOffset = 0;
-        if (iy === 0 && thetaStart === 0) {
-          uOffset = 0.5 / widthSegments;
-        } else if (iy === heightSegments && thetaEnd === Math.PI) {
-          uOffset = -0.5 / widthSegments;
-        }
-        for (let ix = 0; ix <= widthSegments; ix++) {
-          const u = ix / widthSegments;
-          vertex2.x = -radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
-          vertex2.y = radius * Math.cos(thetaStart + v * thetaLength);
-          vertex2.z = radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
-          vertices.push(vertex2.x, vertex2.y, vertex2.z);
-          normal.copy(vertex2).normalize();
-          normals.push(normal.x, normal.y, normal.z);
-          uvs.push(u + uOffset, 1 - v);
-          verticesRow.push(index++);
-        }
-        grid2.push(verticesRow);
-      }
-      for (let iy = 0; iy < heightSegments; iy++) {
-        for (let ix = 0; ix < widthSegments; ix++) {
-          const a = grid2[iy][ix + 1];
-          const b = grid2[iy][ix];
-          const c = grid2[iy + 1][ix];
-          const d = grid2[iy + 1][ix + 1];
-          if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
-          if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
-        }
-      }
-      this.setIndex(indices);
-      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
-      this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
-      this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
-    }
-    copy(source) {
-      super.copy(source);
-      this.parameters = Object.assign({}, source.parameters);
-      return this;
-    }
-    /**
-     * Factory method for creating an instance of this class from the given
-     * JSON object.
-     *
-     * @param {Object} data - A JSON object representing the serialized geometry.
-     * @return {SphereGeometry} A new instance.
-     */
-    static fromJSON(data) {
-      return new _SphereGeometry(data.radius, data.widthSegments, data.heightSegments, data.phiStart, data.phiLength, data.thetaStart, data.thetaLength);
     }
   };
   var MeshStandardMaterial = class extends Material {
@@ -20802,13 +20149,13 @@
         }
       }
       const material = isCubeTexture ? this._cubemapMaterial : this._equirectMaterial;
-      const mesh2 = new Mesh(this._lodPlanes[0], material);
+      const mesh = new Mesh(this._lodPlanes[0], material);
       const uniforms = material.uniforms;
       uniforms["envMap"].value = texture;
       const size = this._cubeSize;
       _setViewport(cubeUVRenderTarget, 0, 0, 3 * size, 2 * size);
       renderer2.setRenderTarget(cubeUVRenderTarget);
-      renderer2.render(mesh2, _flatCamera);
+      renderer2.render(mesh, _flatCamera);
     }
     _applyPMREM(cubeUVRenderTarget) {
       const renderer2 = this._renderer;
@@ -29941,12 +29288,12 @@ void main() {
         const meshes = nodeObject.isGroup ? nodeObject.children : [nodeObject];
         const count = results[0].count;
         const instancedMeshes = [];
-        for (const mesh2 of meshes) {
+        for (const mesh of meshes) {
           const m = new Matrix4();
           const p = new Vector3();
           const q = new Quaternion();
           const s = new Vector3(1, 1, 1);
-          const instancedMesh = new InstancedMesh(mesh2.geometry, mesh2.material, count);
+          const instancedMesh = new InstancedMesh(mesh.geometry, mesh.material, count);
           for (let i = 0; i < count; i++) {
             if (attributes.TRANSLATION) {
               p.fromBufferAttribute(attributes.TRANSLATION, i);
@@ -29964,10 +29311,10 @@ void main() {
               const attr = attributes[attributeName];
               instancedMesh.instanceColor = new InstancedBufferAttribute(attr.array, attr.itemSize, attr.normalized);
             } else if (attributeName !== "TRANSLATION" && attributeName !== "ROTATION" && attributeName !== "SCALE") {
-              mesh2.geometry.setAttribute(attributeName, attributes[attributeName]);
+              mesh.geometry.setAttribute(attributeName, attributes[attributeName]);
             }
           }
-          Object3D.prototype.copy.call(instancedMesh, mesh2);
+          Object3D.prototype.copy.call(instancedMesh, mesh);
           this.parser.assignFinalMaterial(instancedMesh);
           instancedMeshes.push(instancedMesh);
         }
@@ -30299,19 +29646,19 @@ void main() {
       return geometry;
     });
   }
-  function updateMorphTargets(mesh2, meshDef) {
-    mesh2.updateMorphTargets();
+  function updateMorphTargets(mesh, meshDef) {
+    mesh.updateMorphTargets();
     if (meshDef.weights !== void 0) {
       for (let i = 0, il = meshDef.weights.length; i < il; i++) {
-        mesh2.morphTargetInfluences[i] = meshDef.weights[i];
+        mesh.morphTargetInfluences[i] = meshDef.weights[i];
       }
     }
     if (meshDef.extras && Array.isArray(meshDef.extras.targetNames)) {
       const targetNames = meshDef.extras.targetNames;
-      if (mesh2.morphTargetInfluences.length === targetNames.length) {
-        mesh2.morphTargetDictionary = {};
+      if (mesh.morphTargetInfluences.length === targetNames.length) {
+        mesh.morphTargetDictionary = {};
         for (let i = 0, il = targetNames.length; i < il; i++) {
-          mesh2.morphTargetDictionary[targetNames[i]] = i;
+          mesh.morphTargetDictionary[targetNames[i]] = i;
         }
       } else {
         console.warn("THREE.GLTFLoader: Invalid extras.targetNames length. Ignoring names.");
@@ -30888,13 +30235,13 @@ void main() {
      * @private
      * @param {Object3D} mesh Mesh, Line, or Points instance.
      */
-    assignFinalMaterial(mesh2) {
-      const geometry = mesh2.geometry;
-      let material = mesh2.material;
+    assignFinalMaterial(mesh) {
+      const geometry = mesh.geometry;
+      let material = mesh.material;
       const useDerivativeTangents = geometry.attributes.tangent === void 0;
       const useVertexColors = geometry.attributes.color !== void 0;
       const useFlatShading = geometry.attributes.normal === void 0;
-      if (mesh2.isPoints) {
+      if (mesh.isPoints) {
         const cacheKey = "PointsMaterial:" + material.uuid;
         let pointsMaterial = this.cache.get(cacheKey);
         if (!pointsMaterial) {
@@ -30906,7 +30253,7 @@ void main() {
           this.cache.add(cacheKey, pointsMaterial);
         }
         material = pointsMaterial;
-      } else if (mesh2.isLine) {
+      } else if (mesh.isLine) {
         const cacheKey = "LineBasicMaterial:" + material.uuid;
         let lineMaterial = this.cache.get(cacheKey);
         if (!lineMaterial) {
@@ -30937,7 +30284,7 @@ void main() {
         }
         material = cachedMaterial;
       }
-      mesh2.material = material;
+      mesh.material = material;
     }
     getMaterialType() {
       return MeshStandardMaterial;
@@ -31110,37 +30457,37 @@ void main() {
         for (let i = 0, il = geometries.length; i < il; i++) {
           const geometry = geometries[i];
           const primitive = primitives[i];
-          let mesh2;
+          let mesh;
           const material = materials2[i];
           if (primitive.mode === WEBGL_CONSTANTS.TRIANGLES || primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP || primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN || primitive.mode === void 0) {
-            mesh2 = meshDef.isSkinnedMesh === true ? new SkinnedMesh(geometry, material) : new Mesh(geometry, material);
-            if (mesh2.isSkinnedMesh === true) {
-              mesh2.normalizeSkinWeights();
+            mesh = meshDef.isSkinnedMesh === true ? new SkinnedMesh(geometry, material) : new Mesh(geometry, material);
+            if (mesh.isSkinnedMesh === true) {
+              mesh.normalizeSkinWeights();
             }
             if (primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP) {
-              mesh2.geometry = toTrianglesDrawMode(mesh2.geometry, TriangleStripDrawMode);
+              mesh.geometry = toTrianglesDrawMode(mesh.geometry, TriangleStripDrawMode);
             } else if (primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN) {
-              mesh2.geometry = toTrianglesDrawMode(mesh2.geometry, TriangleFanDrawMode);
+              mesh.geometry = toTrianglesDrawMode(mesh.geometry, TriangleFanDrawMode);
             }
           } else if (primitive.mode === WEBGL_CONSTANTS.LINES) {
-            mesh2 = new LineSegments(geometry, material);
+            mesh = new LineSegments(geometry, material);
           } else if (primitive.mode === WEBGL_CONSTANTS.LINE_STRIP) {
-            mesh2 = new Line(geometry, material);
+            mesh = new Line(geometry, material);
           } else if (primitive.mode === WEBGL_CONSTANTS.LINE_LOOP) {
-            mesh2 = new LineLoop(geometry, material);
+            mesh = new LineLoop(geometry, material);
           } else if (primitive.mode === WEBGL_CONSTANTS.POINTS) {
-            mesh2 = new Points(geometry, material);
+            mesh = new Points(geometry, material);
           } else {
             throw new Error("THREE.GLTFLoader: Primitive mode unsupported: " + primitive.mode);
           }
-          if (Object.keys(mesh2.geometry.morphAttributes).length > 0) {
-            updateMorphTargets(mesh2, meshDef);
+          if (Object.keys(mesh.geometry.morphAttributes).length > 0) {
+            updateMorphTargets(mesh, meshDef);
           }
-          mesh2.name = parser.createUniqueName(meshDef.name || "mesh_" + meshIndex);
-          assignExtrasToUserData(mesh2, meshDef);
-          if (primitive.extensions) addUnknownExtensionsToUserData(extensions, mesh2, primitive);
-          parser.assignFinalMaterial(mesh2);
-          meshes.push(mesh2);
+          mesh.name = parser.createUniqueName(meshDef.name || "mesh_" + meshIndex);
+          assignExtrasToUserData(mesh, meshDef);
+          if (primitive.extensions) addUnknownExtensionsToUserData(extensions, mesh, primitive);
+          parser.assignFinalMaterial(mesh);
+          meshes.push(mesh);
         }
         for (let i = 0, il = meshes.length; i < il; i++) {
           parser.associations.set(meshes[i], {
@@ -31295,8 +30642,8 @@ void main() {
       const parser = this;
       const nodeDef = json.nodes[nodeIndex];
       if (nodeDef.mesh === void 0) return null;
-      return parser.getDependency("mesh", nodeDef.mesh).then(function(mesh2) {
-        const node = parser._getNodeRef(parser.meshCache, nodeDef.mesh, mesh2);
+      return parser.getDependency("mesh", nodeDef.mesh).then(function(mesh) {
+        const node = parser._getNodeRef(parser.meshCache, nodeDef.mesh, mesh);
         if (nodeDef.weights !== void 0) {
           node.traverse(function(o) {
             if (!o.isMesh) return;
@@ -31335,9 +30682,9 @@ void main() {
         const children = results[1];
         const skeleton = results[2];
         if (skeleton !== null) {
-          node.traverse(function(mesh2) {
-            if (!mesh2.isSkinnedMesh) return;
-            mesh2.bind(skeleton, _identityMatrix2);
+          node.traverse(function(mesh) {
+            if (!mesh.isSkinnedMesh) return;
+            mesh.bind(skeleton, _identityMatrix2);
           });
         }
         for (let i = 0, il = children.length; i < il; i++) {
@@ -31651,7 +30998,7 @@ void main() {
       discovery: "\u5317\u7F8E\u6D32\u897F\u90E8\u6C89\u79EF\u5730\u5C42\uFF0C\u662F\u7814\u7A76\u5927\u578B\u63A0\u98DF\u8005\u751F\u6001\u4F4D\u548C\u54AC\u5408\u7ED3\u6784\u7684\u91CD\u8981\u6837\u672C\u3002",
       fun: "60\u679A\u952F\u9F7F\u7259\uFF0C\u5F3A\u529B\u54AC\u5408\u53EF\u54AC\u788E\u9AA8\u9ABC\u3002",
       image: "./assets/tripo-references/trex-reference.png",
-      habitat: "./assets/tyrannosaurus/tyrannosaurus.webp",
+      habitat: "./assets/tyrannosaurus/tyrannosaurus.png",
       video: "./assets/tyrannosaurus/tyrannosaurus.mp4",
       avatar: "./assets/ui/avatar-tyrannosaurus.png",
       sticker: "./assets/ui/sticker-tyrannosaurus.png",
@@ -31680,7 +31027,7 @@ void main() {
       discovery: "\u8499\u53E4\u6208\u58C1\u7684\u5E72\u65F1\u6C89\u79EF\u73AF\u5883\u4FDD\u5B58\u4E86\u591A\u4EF6\u5C0F\u578B\u517D\u811A\u7C7B\u5316\u77F3\uFF0C\u9002\u5408\u89C2\u5BDF\u654F\u6377\u578B\u63A0\u98DF\u8005\u7ED3\u6784\u3002",
       fun: "\u771F\u5B9E\u8FC5\u731B\u9F99\u7EA61.8\u7C73\uFF0C\u53EF\u80FD\u8986\u6709\u7FBD\u6BDB\u3002",
       image: "./assets/tripo-references/velociraptor-reference.png",
-      habitat: "./assets/velociraptor/velociraptor.webp",
+      habitat: "./assets/velociraptor/velociraptor.png",
       video: "./assets/velociraptor/velociraptor.mp4",
       avatar: "./assets/ui/avatar-velociraptor.png",
       sticker: "./assets/ui/sticker-velociraptor.png",
@@ -31709,7 +31056,7 @@ void main() {
       discovery: "\u5317\u7F8E\u6D32\u665A\u767D\u57A9\u7EAA\u5730\u5C42\u4E2D\u53D1\u73B0\u5927\u91CF\u89D2\u9F99\u7C7B\u5316\u77F3\uFF0C\u662F\u7814\u7A76\u690D\u98DF\u6050\u9F99\u9632\u5FA1\u4E0E\u5C55\u793A\u7ED3\u6784\u7684\u5173\u952E\u6750\u6599\u3002",
       fun: "\u9888\u76FE\u548C\u4E09\u89D2\u53EF\u9632\u5FA1\uFF0C\u4E5F\u53EF\u80FD\u7528\u4E8E\u5C55\u793A\u3002",
       image: "./assets/tripo-references/triceratops-reference.png",
-      habitat: "./assets/triceratops/triceratops.webp",
+      habitat: "./assets/triceratops/triceratops.png",
       video: "./assets/triceratops/triceratops.mp4",
       avatar: "./assets/ui/avatar-triceratops.png",
       sticker: "./assets/ui/sticker-triceratops.png",
@@ -31738,7 +31085,7 @@ void main() {
       discovery: "\u591A\u5730\u6C89\u79EF\u5C42\u4E2D\u7684\u7FFC\u9F99\u5316\u77F3\u5C55\u793A\u4E86\u98DE\u884C\u722C\u884C\u52A8\u7269\u7684\u9AA8\u9ABC\u8F7B\u91CF\u5316\u548C\u7FFC\u819C\u652F\u6491\u65B9\u5F0F\u3002",
       fun: "\u7FFC\u7531\u5EF6\u957F\u7B2C\u56DB\u6307\u652F\u6491\uFF0C\u662F\u98DE\u884C\u722C\u884C\u52A8\u7269\u3002",
       image: "./assets/tripo-references/pterosaur-reference.png",
-      habitat: "./assets/pterosaur/pterosaur.webp",
+      habitat: "./assets/pterosaur/pterosaur.png",
       video: "./assets/pterosaur/pterosaur.mp4",
       avatar: "./assets/ui/avatar-pterosaur.png",
       sticker: "./assets/ui/sticker-pterosaur.png",
@@ -31854,181 +31201,6 @@ void main() {
   function getActiveDino() {
     return dinosaurs.find((item) => item.id === state.active) || dinosaurs[0];
   }
-  function mesh(geometry, material, position, scale, rotation) {
-    const item = new Mesh(geometry, material);
-    if (position) item.position.set(...position);
-    if (scale) item.scale.set(...scale);
-    if (rotation) item.rotation.set(...rotation);
-    item.castShadow = true;
-    item.receiveShadow = true;
-    return item;
-  }
-  function cylinderBetween(start, end, radius, material, sides = 14) {
-    const a = new Vector3(...start);
-    const b = new Vector3(...end);
-    const dir = b.clone().sub(a);
-    const item = new Mesh(
-      new CylinderGeometry(radius, radius, dir.length(), sides),
-      material
-    );
-    item.position.copy(a).lerp(b, 0.5);
-    item.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), dir.normalize());
-    item.castShadow = true;
-    return item;
-  }
-  function addTeeth(parent, positions) {
-    positions.forEach(([x, y, z, rot = Math.PI]) => {
-      const tooth = mesh(new ConeGeometry(0.044, 0.2, 8), materials.claw, [x, y, z], null, [0, 0, rot]);
-      parent.add(tooth);
-    });
-  }
-  function addLeg(group, x, z, scale = 1, material = materials.dark) {
-    group.add(cylinderBetween([x, 0, z], [x + 0.16 * scale, -0.68 * scale, z], 0.15 * scale, material, 16));
-    group.add(cylinderBetween([x + 0.16 * scale, -0.68 * scale, z], [x - 0.08 * scale, -1.22 * scale, z], 0.11 * scale, material, 16));
-    group.add(mesh(new BoxGeometry(0.56 * scale, 0.13 * scale, 0.22 * scale), material, [x + 0.14 * scale, -1.3 * scale, z + 0.04], null, [0, 0, -0.04]));
-  }
-  function addBoneRibs(group, xs, y, width, height) {
-    xs.forEach((x) => {
-      group.add(cylinderBetween([x, y, -width], [x, y - height, 0], 0.016, materials.bone, 8));
-      group.add(cylinderBetween([x, y, width], [x, y - height, 0], 0.016, materials.bone, 8));
-    });
-  }
-  function buildTrex() {
-    const g = skinGroup;
-    const b = skeletonGroup;
-    g.add(mesh(new SphereGeometry(1, 36, 20), materials.trex, [0, 0.02, 0], [1.75, 0.72, 0.62], [0, 0, -0.04]));
-    g.add(mesh(new SphereGeometry(1, 28, 18), materials.trex, [1.05, 0.18, 0], [0.88, 0.55, 0.52]));
-    g.add(mesh(new SphereGeometry(1, 24, 14), materials.belly, [0.42, -0.08, 0.02], [0.88, 0.34, 0.48]));
-    g.add(cylinderBetween([1.28, 0.42, 0], [1.84, 0.72, 0], 0.25, materials.trex, 18));
-    const head = new Group();
-    head.position.set(2.28, 0.74, 0);
-    head.rotation.z = -0.08;
-    head.add(mesh(new DodecahedronGeometry(0.6, 1), materials.trex, [0, 0, 0], [1.12, 0.72, 0.64]));
-    head.add(mesh(new BoxGeometry(0.9, 0.32, 0.48, 2, 1, 1), materials.trex, [0.56, -0.04, 0]));
-    head.add(mesh(new BoxGeometry(0.82, 0.14, 0.44), materials.dark, [0.62, -0.28, 0]));
-    addTeeth(head, [[0.34, 0.3, -0.18], [0.55, 0.3, -0.18], [0.75, 0.3, -0.18], [0.34, 0.3, 0.18], [0.55, 0.3, 0.18], [0.75, 0.3, 0.18]]);
-    [-0.34, 0.34].forEach((z) => head.add(mesh(new SphereGeometry(0.065, 16, 16), materials.eye, [0.1, 0.08, z])));
-    g.add(head);
-    g.add(mesh(new ConeGeometry(0.44, 3.05, 28), materials.trex, [-2.48, 0.22, 0], [1, 1, 0.68], [0, 0, Math.PI / 2.03]));
-    addLeg(g, 0.42, 0.4, 1.02);
-    addLeg(g, -0.52, -0.36, 0.96);
-    [-0.52, 0.52].forEach((z) => {
-      g.add(cylinderBetween([1.16, 0.16, z], [1.7, -0.22, z * 0.88], 0.055, materials.dark, 12));
-      g.add(cylinderBetween([1.7, -0.22, z * 0.88], [1.94, -0.34, z * 0.78], 0.038, materials.dark, 12));
-    });
-    b.add(cylinderBetween([-1.35, 0.22, 0], [1.12, 0.32, 0], 0.035, materials.bone, 10));
-    b.add(cylinderBetween([1.12, 0.32, 0], [2.75, 0.64, 0], 0.027, materials.bone, 10));
-    b.add(cylinderBetween([-1.35, 0.22, 0], [-3.04, 0.36, 0], 0.026, materials.bone, 10));
-    addBoneRibs(b, [-0.55, -0.12, 0.3, 0.72], 0.27, 0.36, 0.38);
-    b.add(mesh(new BoxGeometry(0.76, 0.32, 0.42), materials.bone, [2.8, 0.66, 0]));
-    addLeg(b, 0.42, 0.28, 0.76, materials.bone);
-    addLeg(b, -0.42, -0.24, 0.72, materials.bone);
-  }
-  function buildVelociraptor() {
-    const g = skinGroup;
-    const b = skeletonGroup;
-    g.add(mesh(new SphereGeometry(1, 32, 18), materials.raptor, [0, 0.02, 0], [1.35, 0.44, 0.42], [0, 0, -0.04]));
-    g.add(cylinderBetween([0.95, 0.22, 0], [1.52, 0.5, 0], 0.16, materials.raptor, 16));
-    const head = new Group();
-    head.position.set(1.9, 0.52, 0);
-    head.add(mesh(new DodecahedronGeometry(0.38, 1), materials.raptor, [0, 0, 0], [1.08, 0.62, 0.54]));
-    head.add(mesh(new BoxGeometry(0.7, 0.18, 0.32), materials.raptor, [0.42, -0.04, 0]));
-    [-0.22, 0.22].forEach((z) => head.add(mesh(new SphereGeometry(0.052, 14, 14), materials.eye, [0.02, 0.08, z])));
-    addTeeth(head, [[0.36, 0.15, -0.12], [0.54, 0.15, -0.12], [0.36, 0.15, 0.12], [0.54, 0.15, 0.12]]);
-    g.add(head);
-    g.add(mesh(new ConeGeometry(0.24, 3.2, 24), materials.raptor, [-2.05, 0.13, 0], [1, 1, 0.55], [0, 0, Math.PI / 2.08]));
-    addLeg(g, 0.24, 0.28, 0.74);
-    addLeg(g, -0.42, -0.26, 0.7);
-    [-0.36, 0.36].forEach((z) => {
-      g.add(cylinderBetween([0.72, 0.1, z], [1.05, -0.18, z * 0.92], 0.052, materials.dark, 10));
-      g.add(cylinderBetween([1.05, -0.18, z * 0.92], [1.34, -0.3, z * 0.82], 0.034, materials.dark, 10));
-    });
-    [-0.5, -0.18, 0.14, 0.46].forEach((x) => {
-      g.add(mesh(new ConeGeometry(0.065, 0.28, 5), materials.dark, [x, 0.46, 0], null, [0, 0, Math.PI]));
-    });
-    b.add(cylinderBetween([-1.06, 0.16, 0], [1.12, 0.25, 0], 0.024, materials.bone, 10));
-    b.add(cylinderBetween([1.12, 0.25, 0], [2.12, 0.46, 0], 0.018, materials.bone, 10));
-    b.add(cylinderBetween([-1.06, 0.16, 0], [-2.85, 0.22, 0], 0.018, materials.bone, 10));
-    addBoneRibs(b, [-0.45, -0.12, 0.22, 0.56], 0.22, 0.25, 0.26);
-    b.add(mesh(new BoxGeometry(0.46, 0.2, 0.28), materials.bone, [2.22, 0.45, 0]));
-    addLeg(b, 0.2, 0.2, 0.58, materials.bone);
-    addLeg(b, -0.32, -0.2, 0.56, materials.bone);
-  }
-  function buildTriceratops() {
-    const g = skinGroup;
-    const b = skeletonGroup;
-    g.add(mesh(new SphereGeometry(1, 36, 20), materials.triceratops, [-0.2, -0.02, 0], [1.85, 0.72, 0.72]));
-    g.add(mesh(new SphereGeometry(1, 28, 18), materials.triceratops, [1.12, 0.06, 0], [0.86, 0.58, 0.62]));
-    const head = new Group();
-    head.position.set(1.95, 0.2, 0);
-    head.rotation.z = -0.18;
-    head.add(mesh(new DodecahedronGeometry(0.62, 1), materials.triceratops, [0, 0, 0], [1, 0.78, 0.7]));
-    head.add(mesh(new ConeGeometry(0.22, 1.1, 18), materials.claw, [0.25, 0.44, -0.32], null, [Math.PI / 2, 0.2, 0]));
-    head.add(mesh(new ConeGeometry(0.22, 1.1, 18), materials.claw, [0.25, 0.44, 0.32], null, [Math.PI / 2, -0.2, 0]));
-    head.add(mesh(new ConeGeometry(0.15, 0.48, 16), materials.claw, [0.66, 0.04, 0], null, [0, 0, -Math.PI / 2]));
-    head.add(mesh(new SphereGeometry(0.7, 32, 12), materials.triceratops, [-0.38, 0.2, 0], [0.2, 0.98, 1.18], [0, 0, 0.1]));
-    [-0.26, 0.26].forEach((z) => head.add(mesh(new SphereGeometry(0.055, 14, 14), materials.eye, [0.26, 0.08, z])));
-    g.add(head);
-    g.add(mesh(new ConeGeometry(0.38, 1.45, 24), materials.triceratops, [-1.85, 0.05, 0], [1, 1, 0.56], [0, 0, Math.PI / 2.03]));
-    [-0.78, 0.78].forEach((x) => [-0.42, 0.42].forEach((z) => addLeg(g, x, z, 0.6, materials.dark)));
-    b.add(cylinderBetween([-1.25, 0.14, 0], [1.2, 0.22, 0], 0.038, materials.bone, 10));
-    b.add(cylinderBetween([1.2, 0.22, 0], [2.08, 0.24, 0], 0.032, materials.bone, 10));
-    b.add(mesh(new SphereGeometry(0.5, 20, 10), materials.bone, [2.1, 0.22, 0], [0.9, 0.6, 0.66]));
-    b.add(mesh(new SphereGeometry(0.72, 24, 10), materials.bone, [1.65, 0.36, 0], [0.14, 0.95, 1.12]));
-    b.add(cylinderBetween([2.15, 0.48, -0.26], [2.82, 0.72, -0.52], 0.04, materials.bone, 12));
-    b.add(cylinderBetween([2.15, 0.48, 0.26], [2.82, 0.72, 0.52], 0.04, materials.bone, 12));
-    addBoneRibs(b, [-0.82, -0.4, 0, 0.42, 0.84], 0.18, 0.42, 0.34);
-    [-0.72, 0.72].forEach((x) => [-0.32, 0.32].forEach((z) => addLeg(b, x, z, 0.48, materials.bone)));
-  }
-  function makeWing(side) {
-    const geometry = new BufferGeometry();
-    const vertices = new Float32Array([
-      0,
-      0.1,
-      0,
-      -2.45,
-      -0.22,
-      side * 1.28,
-      -0.42,
-      -0.72,
-      side * 0.2
-    ]);
-    geometry.setAttribute("position", new BufferAttribute(vertices, 3));
-    geometry.computeVertexNormals();
-    return mesh(geometry, materials.wing);
-  }
-  function buildPterosaur() {
-    const g = skinGroup;
-    const b = skeletonGroup;
-    g.position.y = 0.36;
-    b.position.y = 0.36;
-    g.add(mesh(new SphereGeometry(1, 28, 16), materials.pterosaur, [0, 0, 0], [0.62, 0.38, 0.3], [0, 0, 0.1]));
-    g.add(cylinderBetween([0.36, 0.12, 0], [0.96, 0.32, 0], 0.12, materials.pterosaur, 14));
-    const head = new Group();
-    head.position.set(1.25, 0.34, 0);
-    head.add(mesh(new DodecahedronGeometry(0.28, 1), materials.pterosaur, [0, 0, 0], [1.1, 0.6, 0.48]));
-    head.add(mesh(new ConeGeometry(0.12, 0.88, 16), materials.claw, [0.58, -0.02, 0], null, [0, 0, -Math.PI / 2]));
-    head.add(mesh(new ConeGeometry(0.09, 0.45, 14), materials.dark, [-0.1, 0.34, 0], null, [0.25, 0, 0]));
-    [-0.16, 0.16].forEach((z) => head.add(mesh(new SphereGeometry(0.04, 12, 12), materials.eye, [0.08, 0.04, z])));
-    g.add(head);
-    g.add(mesh(new ConeGeometry(0.14, 1.3, 18), materials.pterosaur, [-0.78, -0.02, 0], [1, 1, 0.48], [0, 0, Math.PI / 2.08]));
-    [-1, 1].forEach((side) => {
-      const wing = makeWing(side);
-      wing.position.set(0.1, 0.08, 0);
-      g.add(wing);
-      g.add(cylinderBetween([0, 0.08, 0], [-2.45, -0.14, side * 1.28], 0.035, materials.dark, 10));
-      g.add(cylinderBetween([0, 0.08, 0], [-0.42, -0.62, side * 0.2], 0.025, materials.dark, 10));
-      g.add(cylinderBetween([-0.1, -0.24, side * 0.12], [-0.62, -1, side * 0.24], 0.038, materials.dark, 10));
-    });
-    b.add(cylinderBetween([-0.74, 0, 0], [0.62, 0.15, 0], 0.022, materials.bone, 10));
-    b.add(cylinderBetween([0.62, 0.15, 0], [1.5, 0.34, 0], 0.018, materials.bone, 10));
-    b.add(mesh(new BoxGeometry(0.42, 0.18, 0.24), materials.bone, [1.54, 0.34, 0]));
-    [-1, 1].forEach((side) => {
-      b.add(cylinderBetween([0, 0.1, 0], [-2.6, -0.12, side * 1.35], 0.026, materials.bone, 10));
-      b.add(cylinderBetween([-0.1, 0.02, 0], [-0.7, -0.78, side * 0.24], 0.02, materials.bone, 10));
-      b.add(cylinderBetween([-0.7, -0.78, side * 0.24], [-0.36, -1.08, side * 0.34], 0.018, materials.bone, 10));
-    });
-  }
   function clearGroup(group) {
     while (group.children.length) {
       const child = group.children.pop();
@@ -32076,15 +31248,6 @@ void main() {
       item.receiveShadow = true;
       item.userData.disposeMaterial = true;
       enhanceLoadedMaterial(item.material, mode);
-    });
-  }
-  function softenProceduralMaterial(root) {
-    root.traverse((item) => {
-      if (!item.isMesh) return;
-      if (item.material?.emissive) {
-        item.material.emissive.set("#050b1c");
-        item.material.emissiveIntensity = 0.05;
-      }
     });
   }
   function getModelPlacement(dinoId) {
@@ -32155,11 +31318,12 @@ void main() {
       document.getElementById("modelPath").textContent = `${active.glb} \xB7 \u5DF2\u52A0\u8F7D\u771F\u5B9E GLB`;
     } catch (error) {
       if (version !== modelLoadVersion) return;
-      console.warn("GLB load failed, falling back to procedural model.", error);
+      console.warn("GLB load failed. Waiting for real model asset instead of showing placeholder geometry.", error);
       clearGroup(skinGroup);
       clearGroup(skeletonGroup);
-      buildProceduralModel(active);
-      document.getElementById("modelPath").textContent = `${active.glb} \xB7 GLB \u52A0\u8F7D\u5931\u8D25\uFF0C\u5DF2\u663E\u793A\u5360\u4F4D\u6A21\u578B`;
+      updateModeVisibility();
+      document.getElementById("modelPath").textContent = `${active.glb} \xB7 \u672A\u627E\u5230\u771F\u5B9E GLB\uFF0C\u8BF7\u8865\u5145\u6A21\u578B\u6587\u4EF6`;
+      setText("robotBubble", `\u8FD8\u6CA1\u6709\u627E\u5230${active.name}\u7684\u771F\u5B9E GLB \u6A21\u578B\u3002`);
     }
   }
   function updateModeVisibility() {
@@ -32175,17 +31339,6 @@ void main() {
   function getRobotBubbleCopy(active, mode = state.mode) {
     return `\u62D6\u62FD\u65CB\u8F6C\uFF0C\u67E5\u770B${active.name}${mode === "skeleton" ? "\u9AA8\u9ABC" : "\u76AE\u80A4"}\u3002`;
   }
-  function buildProceduralModel(active) {
-    if (active.id === "trex") buildTrex();
-    if (active.id === "velociraptor") buildVelociraptor();
-    if (active.id === "triceratops") buildTriceratops();
-    if (active.id === "pterosaur") buildPterosaur();
-    softenProceduralMaterial(skinGroup);
-    softenProceduralMaterial(skeletonGroup);
-    centerModelGroup(skinGroup, MODEL_GROUND_CLEARANCE);
-    centerModelGroup(skeletonGroup, MODEL_GROUND_CLEARANCE);
-    updateModeVisibility();
-  }
   function buildModel() {
     const active = getActiveDino();
     const version = ++modelLoadVersion;
@@ -32197,7 +31350,6 @@ void main() {
     skeletonGroup.scale.setScalar(1);
     updateModeVisibility();
     if (window.location.protocol === "file:") {
-      buildProceduralModel(active);
       document.getElementById("modelPath").textContent = `${active.glb} \xB7 file:// \u6A21\u5F0F\u65E0\u6CD5\u8BFB\u53D6 GLB\uFF0C\u8BF7\u6253\u5F00 ${LOCAL_DEMO_URL}`;
       setText("robotBubble", "\u8BF7\u7528\u672C\u5730\u670D\u52A1\u6253\u5F00\u771F\u5B9E GLB\u3002");
       return;
@@ -32207,7 +31359,8 @@ void main() {
       loadAssetModel(active, version);
       return;
     }
-    buildProceduralModel(active);
+    document.getElementById("modelPath").textContent = `${active.glb || "GLB"} \xB7 \u672A\u914D\u7F6E\u6A21\u578B\u6587\u4EF6`;
+    setText("robotBubble", `\u8BF7\u8865\u5145${active.name}\u7684\u771F\u5B9E GLB \u6A21\u578B\u3002`);
   }
   function centerModelGroup(group, groundClearance = MODEL_GROUND_CLEARANCE) {
     group.updateMatrixWorld(true);
